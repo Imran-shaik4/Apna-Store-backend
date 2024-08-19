@@ -93,10 +93,99 @@ exports.getProfile = async (req, res) => {
     }
 };
 
+// // Update user profile
+// exports.updateProfile = async (req, res) => {
+//     const { name, address, phone } = req.body;
+//     const userFields = { name, address, phone };
+
+//     try {
+//         let user = await User.findById(req.user.id);
+//         if (!user) {
+//             return res.status(404).json({ msg: 'User not found' });
+//         }
+
+//         user = await User.findByIdAndUpdate(
+//             req.user.id,
+//             { $set: userFields },
+//             { new: true }
+//         ).select('-password');
+
+//         res.json(user);
+//     } catch (err) {
+//         console.error(err.message);
+//         res.status(500).send('Server error');
+//     }
+// };
 // Update user profile
+// exports.updateProfile = async (req, res) => {
+//     const { name, address, phone } = req.body;
+
+//     try {
+//         let user = await User.findById(req.user.id);
+//         if (!user) {
+//             return res.status(404).json({ msg: 'User not found' });
+//         }
+
+//         // Update the fields individually
+//         if (name) user.name = name;
+//         if (phone) user.phone = phone;
+//         if (address) {
+//             if (address.city) user.address.city = address.city;
+//             if (address.state) user.address.state = address.state;
+//         }
+
+//         await user.save();
+//         user = await User.findById(req.user.id).select('-password');
+
+//         res.json(user);
+//     } catch (err) {
+//         console.error(err.message);
+//         res.status(500).send('Server error');
+//     }
+// };
+// Update user profile
+// exports.updateProfile = async (req, res) => {
+//     const { name, address: newAddress, phone } = req.body;
+//     console.log(name, newAddress, phone);
+
+//     try {
+//         let user = await User.findById(req.user.id);
+//         if (!user) {
+//             return res.status(404).json({ msg: 'User not found' });
+//         }
+
+//         // Merge the existing address with the new address fields
+//         const updatedAddress = {
+//             ...user.address.toObject(), // Convert the Mongoose object to a plain object
+//             ...newAddress,
+//         };
+
+//         const userFields = { name, phone, address: updatedAddress };
+
+//         user = await User.findByIdAndUpdate(
+//             req.user.id,
+//             { $set: userFields },
+//             { new: true }
+//         ).select('-password');
+
+//         res.json(user);
+//     } catch (err) {
+//         console.error(err.message);
+//         res.status(500).send('Server error');
+//     }
+// };
 exports.updateProfile = async (req, res) => {
-    const { name, address, phone } = req.body;
-    const userFields = { name, address, phone };
+    const { name, city, state, phone } = req.body;
+
+    // Build user fields object
+    const userFields = { name, phone };
+
+    // Add address subfields only if they are provided
+    if (city || state) {
+        userFields.address = {};
+        if (city) userFields.address.city = city;
+        if (state) userFields.address.state = state;
+    }
 
     try {
         let user = await User.findById(req.user.id);
@@ -117,10 +206,13 @@ exports.updateProfile = async (req, res) => {
     }
 };
 
+
+
+
 // Get all orders of the user
 exports.getAllOrders = async (req, res) => {
     try {
-        const orders = await Order.find({ user: req.user.id }).populate('store', 'name address');
+        const orders = await Order.find({ user: req.user.id }).populate('store', 'name address phone email');
         res.json(orders);
     } catch (err) {
         console.error(err.message);

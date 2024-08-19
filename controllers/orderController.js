@@ -38,7 +38,8 @@ exports.createOrder = async (req, res) => {
 exports.updateOrder = async (req, res) => {
     const { orderId } = req.params;
     const { products } = req.body;
-
+    console.log(orderId);
+    
     try {
         let order = await Order.findById(orderId);
 
@@ -76,7 +77,7 @@ exports.updateOrder = async (req, res) => {
 // Get all orders of a store
 exports.getOrdersByStore = async (req, res) => {
     try {
-        const orders = await Order.find({ store: req.params.storeId }).populate('user', 'name email');
+        const orders = await Order.find({ store: req.params.storeId }).populate('user', 'name email phone');
         res.json(orders);
     } catch (err) {
         console.error(err.message);
@@ -93,7 +94,7 @@ exports.getTodaysOrders = async (req, res) => {
         const orders = await Order.find({
             store: req.params.storeId,
             orderDate: { $gte: today }
-        }).populate('user', 'name email');
+        }).populate('user', 'name email phone');
         res.json(orders);
     } catch (err) {
         console.error(err.message);
@@ -111,7 +112,7 @@ exports.getTodaysCompletedOrders = async (req, res) => {
             store: req.params.storeId,
             orderDate: { $gte: today },
             status: 'completed'
-        }).populate('user', 'name email');
+        }).populate('user', 'name email phone');
         res.json(orders);
     } catch (err) {
         console.error(err.message);
@@ -129,7 +130,7 @@ exports.getTodaysUncompletedOrders = async (req, res) => {
             store: req.params.storeId,
             orderDate: { $gte: today },
             status: 'uncompleted'
-        }).populate('user', 'name email');
+        }).populate('user', 'name email phone');
         res.json(orders);
     } catch (err) {
         console.error(err.message);

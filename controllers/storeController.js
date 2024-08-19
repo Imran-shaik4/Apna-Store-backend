@@ -1,6 +1,6 @@
 const Store = require('../models/storeModel');
 const User = require('../models/userModel');
-
+const Order =require('../models/orderModel')
 // Create a new store
 exports.createStore = async (req, res) => {
     const { name, address } = req.body;
@@ -64,7 +64,7 @@ exports.getAllStores = async (req, res) => {
         const stores = await Store.find({}, '-orders') // Exclude the orders field
             .skip(skip)
             .limit(limit)
-            .populate('owner', 'name email');
+            .populate('owner', 'name email phone');
 
         const totalStores = await Store.countDocuments();
 
@@ -81,21 +81,82 @@ exports.getAllStores = async (req, res) => {
 
 
 
-// Get all stores of a particular user
+// // Get all stores of a particular user
+// exports.getStoresByUser = async (req, res) => {
+//     try {
+//         const stores = await Store.find({ owner: req.user.id }, '-orders').populate('owner', 'name email');
+//         // console.log('Stores fetched for user:', stores);
+//         res.json(stores);
+//     } catch (err) {
+//         console.error(err.message);
+//         res.status(500).send('Server error');
+//     }
+// };
+// Get all stores of a particular user with additional fields
+// exports.getStoresByUser = async (req, res) => {
+//     try {
+//         const stores = await Store.find({ owner: req.user.id }, '-orders').populate('owner', 'name email');
+
+//         // Fetch uncompleted orders for each store and add the new fields
+//         const storePromises = stores.map(async (store) => {
+//             const uncompletedOrders = await Order.find({
+//                 store: store._id,
+//                 orderDate: { $gte: new Date().setHours(0, 0, 0, 0) },
+//                 status: 'uncompleted'
+//             });
+
+//             return {
+//                 ...store.toObject(),
+//                 totalUncompletedOrders: uncompletedOrders.length,
+//                 lastOrderDate: uncompletedOrders.length > 0 ? uncompletedOrders[0].orderDate : null
+//             };
+//         });
+
+//         const updatedStores = await Promise.all(storePromises);
+//         res.json(updatedStores);
+//     } catch (err) {
+//         console.error(err.message);
+//         res.status(500).send('Server error');
+//     }
+// };
 exports.getStoresByUser = async (req, res) => {
     try {
         const stores = await Store.find({ owner: req.user.id }, '-orders').populate('owner', 'name email');
-        res.json(stores);
+
+        // Fetch the most recent order date and total uncompleted orders for each store
+        const storePromises = stores.map(async (store) => {
+            // Find the most recent order, whether completed or uncompleted
+            const lastOrder = await Order.findOne({ store: store._id })
+                .sort({ orderDate: -1 }) // Sort by orderDate in descending order
+                .select('orderDate'); // Only select the orderDate field
+
+            // Find the uncompleted orders for the store today
+            const uncompletedOrders = await Order.find({
+                store: store._id,
+                orderDate: { $gte: new Date().setHours(0, 0, 0, 0) },
+                status: 'uncompleted'
+            });
+
+            return {
+                ...store.toObject(),
+                totalUncompletedOrders: uncompletedOrders.length,
+                lastOrderDate: lastOrder ? lastOrder.orderDate : null
+            };
+        });
+
+        const updatedStores = await Promise.all(storePromises);
+        res.json(updatedStores);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server error');
     }
 };
 
+
 // Get a store by ID
 exports.getStoreById = async (req, res) => {
     try {
-        const store = await Store.findById(req.params.id).populate('owner', 'name email');
+        const store = await Store.findById(req.params.id).populate('owner', 'name email phone');
 
         if (!store) {
             return res.status(404).json({ msg: 'Store not found' });
@@ -199,7 +260,7 @@ exports.searchStoresByName = async (req, res) => {
     const { name } = req.query;
 
     try {
-        const stores = await Store.find({ name: new RegExp(name, 'i') }).populate('owner', 'name email');
+        const stores = await Store.find({ name: new RegExp(name, 'i') }).populate('owner', 'name email phone');
         res.json(stores);
     } catch (err) {
         console.error(err.message);
@@ -212,7 +273,7 @@ exports.searchStoresByCity = async (req, res) => {
     const { city } = req.query;
 
     try {
-        const stores = await Store.find({ 'address.city': new RegExp(city, 'i') }).populate('owner', 'name email');
+        const stores = await Store.find({ 'address.city': new RegExp(city, 'i') }).populate('owner', 'name email phone');
         res.json(stores);
     } catch (err) {
         console.error(err.message);

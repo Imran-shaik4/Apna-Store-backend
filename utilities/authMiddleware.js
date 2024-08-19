@@ -20,7 +20,6 @@ exports.authMiddleware = async (req, res, next) => {
 
 exports.storeOwnerAuth = async (req, res, next) => {
     const token = req.header('x-auth-token');
-
     if (!token) {
         return res.status(401).json({ msg: 'No token, authorization denied' });
     }
@@ -36,8 +35,10 @@ exports.storeOwnerAuth = async (req, res, next) => {
 
         // console.log("req.params.storeId:", req.params.storeId);
         const store = await Store.findById(req.params.storeId);
-
+        
         if (store.owner.toString() !== req.user.id) {
+            
+            
             return res.status(401).json({ msg: 'User not authorized to access this store' });
         }
 
